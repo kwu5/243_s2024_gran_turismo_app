@@ -11,5 +11,5 @@ The project use : **React Native** with TypeScript and Expo;
 
 
 ### Reference
-https://dotintent.github.io/react-native-ble-plx/#introduction
-https://github.com/dotintent/react-native-ble-plx
+* https://dotintent.github.io/react-native-ble-plx/#introduction
+* https://github.com/dotintent/react-native-ble-plx
