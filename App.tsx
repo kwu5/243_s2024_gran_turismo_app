@@ -71,11 +71,11 @@ function scanAndConnect() {
       return;
     }
 
+    //TODO:
     if (
       device &&
       (device.name === "TI BLE Sensor Tag" || device.name === "SensorTag")
     ) {
-      // Stop scanning as it's not necessary if you are scanning for one device.
       manager.stopDeviceScan();
 
       // Proceed with connection.
@@ -85,30 +85,53 @@ function scanAndConnect() {
   });
 }
 
-function readDataFromBLE(device: Device): void {
-  device
-    .connect()
-    .then((connctedDevice) => {
-      console.log("Connected... Discovering services and characteristics");
-      return connctedDevice.discoverAllServicesAndCharacteristics();
-    })
-    .then((device) => {
-      console.log("Start reading data...");
-      //TODO: Replace the serviceUUID and characteristicUUID with your actual device's GATT profile
-      // The serviceUUID should be specified properly based on your actual Bluetooth device's GATT profile
-      return manager.readCharacteristicForDevice(
-        device.id,
-        "serviceUUID",
-        "characteristicUUID"
-      );
-    })
-    .then((characteristic) => {
-      console.log("Reading data: ", characteristic.value);
-    })
-    .catch((error) => {
-      console.error("Connection failed: ", error);
-    });
+async function readDataFromBLE(device: Device): Promise<void> {
+  let connectedDevice: Device | null = null;
+
+  try {
+    connectedDevice = await device.connect();
+    console.log("Connected... Discovering services and characteristics");
+
+    await connectedDevice.discoverAllServicesAndCharacteristics();
+    console.log("Service and Characterisics found");
+    const services = await connectedDevice.services();
+    const characteristics = await services[0].characteristics();
+    const characteristic = await manager.readCharacteristicForDevice(
+      connectedDevice.id,
+      services[0].uuid,
+      characteristics[0].uuid
+    );
+    // console.log("Reading characteristic" + characteristic);
+    console.log("Reading characteristic value" + characteristic.value);
+  } catch (error) {
+    console.error("Connect and read data fail", error);
+  }
 }
+
+// function readDataFromBLE(device: Device): void {
+//   device
+//     .connect()
+//     .then((connctedDevice) => {
+//       console.log("Connected... Discovering services and characteristics");
+//       return connctedDevice.discoverAllServicesAndCharacteristics();
+//     })
+//     .then((device) => {
+//       console.log("Start reading data...");
+//       //TODO: Replace the serviceUUID and characteristicUUID with your actual device's GATT profile
+//       // The serviceUUID should be specified properly based on your actual Bluetooth device's GATT profile
+//       return manager.readCharacteristicForDevice(
+//         device.id,
+//         "serviceUUID",
+//         "characteristicUUID"
+//       );
+//     })
+//     .then((characteristic) => {
+//       console.log("Reading data: ", characteristic.value);
+//     })
+//     .catch((error) => {
+//       console.error("Connection failed: ", error);
+//     });
+// }
 
 // const [region, setRegion] = useState({
 //   latitude: 37.78825,
