@@ -108,38 +108,6 @@ async function readDataFromBLE(device: Device): Promise<void> {
   }
 }
 
-// function readDataFromBLE(device: Device): void {
-//   device
-//     .connect()
-//     .then((connctedDevice) => {
-//       console.log("Connected... Discovering services and characteristics");
-//       return connctedDevice.discoverAllServicesAndCharacteristics();
-//     })
-//     .then((device) => {
-//       console.log("Start reading data...");
-//       //TODO: Replace the serviceUUID and characteristicUUID with your actual device's GATT profile
-//       // The serviceUUID should be specified properly based on your actual Bluetooth device's GATT profile
-//       return manager.readCharacteristicForDevice(
-//         device.id,
-//         "serviceUUID",
-//         "characteristicUUID"
-//       );
-//     })
-//     .then((characteristic) => {
-//       console.log("Reading data: ", characteristic.value);
-//     })
-//     .catch((error) => {
-//       console.error("Connection failed: ", error);
-//     });
-// }
-
-// const [region, setRegion] = useState({
-//   latitude: 37.78825,
-//   longitude: -122.4324,
-//   latitudeDelta: 0.0922,
-//   longitudeDelta: 0.0421,
-// });
-
 export default function App() {
   useEffect(() => {
     requestBluetoothPermission().then((result) => {
@@ -155,21 +123,22 @@ export default function App() {
 
   return (
     <>
-      <View style={styles.container}>
-        <Text>Bluetooh building: Hello world</Text>
-      </View>
-      <StatusBar style="auto" />
       {/* <View style={styles.container}>
+        <Text>Bluetooh building: Hello world</Text>
+      </View> */}
+      <StatusBar style="auto" />
+      <View style={styles.container}>
         <View style={styles.mapContainer}>
           <Image
             style={styles.map}
             source={require("./assets/images/dummy.png")}
           />
+          <Button title="Start" onPress={() => alert("Your press START")} />
+          <Button title="Stop" onPress={() => alert("You press STOP")} />
         </View>
-        <Button title="Start" onPress={() => alert("Your press START")} />
-        <Button title="Stop" onPress={() => alert("You press STOP")} />
+
         <StatusBar style="auto" />
-      </View> */}
+      </View>
     </>
   );
 }
@@ -204,6 +173,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 10,
     borderRadius: 5,
-    marginVertical: 5,
+    marginVertical: 10,
+    marginHorizontal: 10,
   },
 });
