@@ -15,13 +15,6 @@ import { Region } from "react-native-maps";
 const bluetoothManager = new BleManager();
 
 export default function App() {
-  // const [region, setRegion] = useState<Region>({
-  //   latitude: 37.78825,
-  //   longitude: -122.4324,
-  //   latitudeDelta: 0.0922,
-  //   longitudeDelta: 0.0421,
-  // });
-
   const [region, setRegion] = useState<Region>(getInitialState().region);
 
   const renderItem = ({ item }: { item: Device }) => (
@@ -44,6 +37,7 @@ export default function App() {
           serviceUUID={"0000ffe0-0000-1000-8000-00805f9b34fb"}
           characteristicUUID={"0000ffe1-0000-1000-8000-00805f9b34fb"}
           region={region}
+          setRegion={setRegion}
         />
       </View>
     </>
