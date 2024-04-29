@@ -4,11 +4,12 @@ import {
   Device,
   Subscription,
 } from "react-native-ble-plx";
-import { PermissionsAndroid, Platform, Text } from "react-native";
+import { Alert, PermissionsAndroid, Platform, Text } from "react-native";
 import base64 from "react-native-base64";
 import ErrorToast from "./ErrorToast";
 import { Children, useEffect, useState } from "react";
 import Button from "./Button";
+import { Region } from "react-native-maps";
 
 type PermissionStatus = "granted" | "denied" | "never_ask_again";
 
@@ -21,9 +22,10 @@ interface BluetoothProp {
   deviceId: string | null;
   serviceUUID: string | null;
   characteristicUUID: string | null;
+  region: Region;
 }
 
-const requestBluetoothPermission = async (): Promise<boolean> => {
+const requestBluetoothPermission = async () => {
   if (Platform.OS === "ios") {
     console.log("ios platform detected");
     return true;
@@ -73,10 +75,10 @@ const initBluetooth = async ({
   serviceUUID,
   characteristicUUID,
 }: BluetoothProp) => {
-  bluetoothManager.startDeviceScan(null, null, (error, device) => {
+  bluetoothManager.startDeviceScan(null, null, async (error, device) => {
     if (error) {
       console.error("ScanAndConnect failed: ", error);
-      return;
+      return false;
     }
 
     if (device && (device.name == deviceName || device.id == deviceId)) {
@@ -89,6 +91,7 @@ const initBluetooth = async ({
         characteristicUUID ? characteristicUUID : ""
       );
     }
+    return false;
   });
 };
 
@@ -96,7 +99,7 @@ async function initBLEConnection(
   device: Device,
   serviceUUID: string,
   characteristicUUID: string
-) {
+): Promise<boolean> {
   try {
     const connectedDevice = await device.connect();
     await connectedDevice.discoverAllServicesAndCharacteristics();
@@ -129,6 +132,7 @@ async function initBLEConnection(
     return true;
   } catch (error) {
     console.error("Error in initBLEConnection: ", error);
+    return false;
   }
 }
 
@@ -181,8 +185,11 @@ export default function Bluetooth({
   deviceId,
   serviceUUID,
   characteristicUUID,
+  region,
 }: BluetoothProp) {
-  const triggerStart = false;
+  const [go, setGo] = useState(false);
+  // const [isConnected, setIsConnected] = useState(false);
+  const [readMode, setreadMode] = useState(true);
 
   useEffect(() => {
     requestBluetoothPermission().then((result) => {
@@ -196,34 +203,45 @@ export default function Bluetooth({
           deviceId,
           serviceUUID,
           characteristicUUID,
+          region,
         });
       }
     });
   }, []);
 
-  const [start, setStart] = useState(false);
+  // useEffect(() => {
+  //   if (deviceId) {
+  //     const checkConnection = async () => {
+  //       const isConnected = await bluetoothManager.isDeviceConnected(deviceId);
+  //       setIsConnected(isConnected);
+  //     };
+
+  //     checkConnection();
+  //   }
+  // }, [deviceId]);
+
   useEffect(() => {
-    if (start) {
+    if (go) {
       stopMonitoringBLECharacteristic();
-      writeBLECharacteristic("start");
-    } else {
+      writeBLECharacteristic(
+        `latitude:${region.latitude},longitude:${region.longitude}`
+      );
+      Alert.alert("command sent to device, reading data.");
+      // setreadMode(false);
       readBLECharacteristic();
+    } else {
+      // readBLECharacteristic();
+      // setreadMode(true);
+      stopMonitoringBLECharacteristic();
+      writeBLECharacteristic("STOP");
+      Alert.alert("Car Stopped, monitoring stopped.");
     }
-  }, [start]);
+  }, [go]);
 
   return (
     <>
-      <Text>Bluetooth enabled</Text>
-      {/* {start ?  : "stop"} */}
-      <Button
-        title={start ? "Stop" : "Start"}
-        onPress={() => setStart(!start)}
-      />
-      {/* <Button title="Start" onPress={() => setStart(true)} />
-      <Button title="Stop" onPress={() => setStart(false)} /> */}
+      {deviceId ? <Text>{deviceId}</Text> : <Text>Device ID not provided</Text>}
+      <Button title={go ? "Stop" : "go"} onPress={() => setGo(!go)} />
     </>
   );
-}
-function onDataReceived(decodedData: string) {
-  throw new Error("Function not implemented.");
 }
