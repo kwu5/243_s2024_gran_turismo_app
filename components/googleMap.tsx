@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { LatLng, Marker, Region } from "react-native-maps";
 import Geolocation from "@react-native-community/geolocation";
+import React from "react";
 
 interface googleMapProps {
   region: Region;

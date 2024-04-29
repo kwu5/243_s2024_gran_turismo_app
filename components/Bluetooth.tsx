@@ -10,6 +10,7 @@ import ErrorToast from "./ErrorToast";
 import { Children, useEffect, useState } from "react";
 import Button from "./Button";
 import { Region } from "react-native-maps";
+import React from "react";
 
 type PermissionStatus = "granted" | "denied" | "never_ask_again";
 
@@ -224,7 +225,9 @@ export default function Bluetooth({
     if (go) {
       stopMonitoringBLECharacteristic();
       writeBLECharacteristic(
-        `latitude:${region.latitude},longitude:${region.longitude}`
+        `latitude:${region.latitude.toFixed(
+          2
+        )},longitude:${region.longitude.toFixed(2)}`
       );
       Alert.alert("command sent to device, reading data.");
       // setreadMode(false);
