@@ -180,10 +180,10 @@ async function readBLECharacteristic(): Promise<string | null> {
           }
           if (characteristic?.value) {
             const decodedData = base64.decode(characteristic.value);
-            console.log(
-              "Received Notification with Decoded Data:",
-              decodedData
-            );
+            // console.log(
+            //   "Received Notification with Decoded Data:",
+            //   decodedData
+            // );
             resolve(decodedData);
           }
         }
@@ -221,18 +221,6 @@ export default function Bluetooth({
   setRegion,
 }: BluetoothProp) {
   const [go, setGo] = useState(false);
-  // const [isConnected, setIsConnected] = useState(false);
-  // const [readMode, setreadMode] = useState(true);
-
-  // const updateRegion = (regiondata: string): Region => {
-  //   const regionArray = regiondata.split(",");
-  //   console.log("regionArray: ", regionArray);
-  //   return {
-  //     ...region,
-  //     latitude: parseFloat(regionArray[0]),
-  //     longitude: parseFloat(regionArray[1]),
-  //   };
-  // };
 
   const updateRegion = (regiondata: string): Region => {
     if (typeof regiondata !== "string") {
@@ -268,29 +256,26 @@ export default function Bluetooth({
     });
   }, []);
 
-  // useEffect(() => {
-  //   if (deviceId) {
-  //     const checkConnection = async () => {
-  //       const isConnected = await bluetoothManager.isDeviceConnected(deviceId);
-  //       setIsConnected(isConnected);
-  //     };
-
-  //     checkConnection();
-  //   }
-  // }, [deviceId]);
-
   useEffect(() => {
     const fetchData = async () => {
       if (go) {
         stopMonitoringBLECharacteristic();
         writeBLECharacteristic(
-          `GO!!,${region.latitude.toFixed(5)},${region.longitude.toFixed(5)}`
+          `GO!!,LAT:${region.latitude.toFixed(
+            6
+          )},LONG:${region.longitude.toFixed(6)}`
         );
-        Alert.alert("command sent to device, reading data.");
-        // setreadMode(false);
+
+        Alert.alert(
+          `data sent: ${region.latitude.toFixed(6)},${region.longitude.toFixed(
+            6
+          )}`
+        );
+
         try {
           const data = await readBLECharacteristic();
           console.log("data: ", data);
+          // Alert.alert(`data received: ${data}`);
           if (data) {
             const updatedRegion = updateRegion(data);
             setRegion(updatedRegion);

@@ -9,11 +9,15 @@ interface googleMapProps {
   setRegion: (region: Region) => void;
 }
 
+/**
+ * North garage: 37.33934779382195, -121.88073942010605
+ */
+
 export const getInitialState = (): { region: Region } => {
   return {
     region: {
-      latitude: 37.78825,
-      longitude: -122.4324,
+      latitude: 37.33934,
+      longitude: -121.880739,
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
     },
