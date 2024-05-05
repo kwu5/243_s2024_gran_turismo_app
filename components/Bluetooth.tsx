@@ -10,6 +10,7 @@ import ErrorToast from "./ErrorToast";
 import { Children, useEffect, useState } from "react";
 import Button from "./Button";
 import { Region } from "react-native-maps";
+import React from "react";
 
 type PermissionStatus = "granted" | "denied" | "never_ask_again";
 
@@ -23,6 +24,7 @@ interface BluetoothProp {
   serviceUUID: string | null;
   characteristicUUID: string | null;
   region: Region;
+  setRegion: (region: Region) => void;
 }
 
 const requestBluetoothPermission = async () => {
@@ -69,12 +71,12 @@ const requestBluetoothPermission = async () => {
   return false;
 };
 
-const initBluetooth = async ({
-  deviceName,
-  deviceId,
-  serviceUUID,
-  characteristicUUID,
-}: BluetoothProp) => {
+const initBluetooth = async (
+  deviceName: string | null,
+  deviceId: string | null,
+  serviceUUID: string | null,
+  characteristicUUID: string | null
+) => {
   bluetoothManager.startDeviceScan(null, null, async (error, device) => {
     if (error) {
       console.error("ScanAndConnect failed: ", error);
@@ -136,28 +138,58 @@ async function initBLEConnection(
   }
 }
 
+// async function readBLECharacteristic(): Promise<string | null> {
+//   if (characteristicReference == null) {
+//     return null;
+//   }
+
+//   notificationSubscription = characteristicReference.monitor(
+//     (error, characteristic) => {
+//       if (error) {
+//         console.error(
+//           "readBLECharacteristic: Error during notification setup:",
+//           error
+//         );
+
+//       }
+//       if (characteristic?.value) {
+//         const decodedData = base64.decode(characteristic.value);
+//         console.log("Received Notification with Decoded Data:", decodedData);
+//         return decodedData;
+//       }
+//     }
+//   );
+
+// }
+
 async function readBLECharacteristic(): Promise<string | null> {
   if (characteristicReference == null) {
     return null;
   }
 
-  notificationSubscription = characteristicReference.monitor(
-    (error, characteristic) => {
-      if (error) {
-        console.error(
-          "readBLECharacteristic: Error during notification setup:",
-          error
-        );
-        return;
-      }
-      if (characteristic?.value) {
-        const decodedData = base64.decode(characteristic.value);
-        console.log("Received Notification with Decoded Data:", decodedData);
-        return decodedData;
-      }
+  return new Promise((resolve, reject) => {
+    if (characteristicReference) {
+      notificationSubscription = characteristicReference.monitor(
+        (error, characteristic) => {
+          if (error) {
+            console.error(
+              "readBLECharacteristic: Error during notification setup:",
+              error
+            );
+            reject(error);
+          }
+          if (characteristic?.value) {
+            const decodedData = base64.decode(characteristic.value);
+            // console.log(
+            //   "Received Notification with Decoded Data:",
+            //   decodedData
+            // );
+            resolve(decodedData);
+          }
+        }
+      );
     }
-  );
-  return null;
+  });
 }
 
 async function writeBLECharacteristic(data: string): Promise<void> {
@@ -186,10 +218,31 @@ export default function Bluetooth({
   serviceUUID,
   characteristicUUID,
   region,
+  setRegion,
 }: BluetoothProp) {
   const [go, setGo] = useState(false);
-  // const [isConnected, setIsConnected] = useState(false);
-  const [readMode, setreadMode] = useState(true);
+
+  const updateRegion = (regiondata: string): Region => {
+    if (typeof regiondata !== "string") {
+      console.warn("updateRegion: Expected regiondata to be a string");
+      return region;
+    }
+
+    const regionArray = regiondata.split(",");
+    if (regionArray.length < 3) {
+      console.warn(
+        "updateRegion: Expected regiondata to contain at least three elements"
+      );
+      return region;
+    }
+
+    console.log("regionArray: ", regionArray);
+    return {
+      ...region,
+      latitude: parseFloat(regionArray[1]),
+      longitude: parseFloat(regionArray[2]),
+    };
+  };
 
   useEffect(() => {
     requestBluetoothPermission().then((result) => {
@@ -198,45 +251,45 @@ export default function Bluetooth({
       );
       if (result) {
         console.log("Scanning for devices");
-        initBluetooth({
-          deviceName,
-          deviceId,
-          serviceUUID,
-          characteristicUUID,
-          region,
-        });
+        initBluetooth(deviceName, deviceId, serviceUUID, characteristicUUID);
       }
     });
   }, []);
 
-  // useEffect(() => {
-  //   if (deviceId) {
-  //     const checkConnection = async () => {
-  //       const isConnected = await bluetoothManager.isDeviceConnected(deviceId);
-  //       setIsConnected(isConnected);
-  //     };
-
-  //     checkConnection();
-  //   }
-  // }, [deviceId]);
-
   useEffect(() => {
-    if (go) {
-      stopMonitoringBLECharacteristic();
-      writeBLECharacteristic(
-        `latitude:${region.latitude},longitude:${region.longitude}`
-      );
-      Alert.alert("command sent to device, reading data.");
-      // setreadMode(false);
-      readBLECharacteristic();
-    } else {
-      // readBLECharacteristic();
-      // setreadMode(true);
-      stopMonitoringBLECharacteristic();
-      writeBLECharacteristic("STOP");
-      Alert.alert("Car Stopped, monitoring stopped.");
-    }
-  }, [go]);
+    const fetchData = async () => {
+      if (go) {
+        stopMonitoringBLECharacteristic();
+        writeBLECharacteristic(
+          `GO!!,LAT:${region.latitude.toFixed(
+            6
+          )},LONG:${region.longitude.toFixed(6)}`
+        );
+
+        Alert.alert(
+          `data sent: ${region.latitude.toFixed(6)},${region.longitude.toFixed(
+            6
+          )}`
+        );
+
+        try {
+          const data = await readBLECharacteristic();
+          console.log("data: ", data);
+          // Alert.alert(`data received: ${data}`);
+          if (data) {
+            const updatedRegion = updateRegion(data);
+            setRegion(updatedRegion);
+          }
+        } catch (error) {
+          console.error("Failed to read BLE characteristic: ", error);
+        }
+      } else {
+        stopMonitoringBLECharacteristic();
+      }
+    };
+
+    fetchData();
+  }, [go, region, updateRegion]);
 
   return (
     <>

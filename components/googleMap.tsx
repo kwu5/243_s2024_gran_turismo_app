@@ -2,17 +2,22 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { LatLng, Marker, Region } from "react-native-maps";
 import Geolocation from "@react-native-community/geolocation";
+import React from "react";
 
 interface googleMapProps {
   region: Region;
   setRegion: (region: Region) => void;
 }
 
+/**
+ * North garage: 37.33934779382195, -121.88073942010605
+ */
+
 export const getInitialState = (): { region: Region } => {
   return {
     region: {
-      latitude: 37.78825,
-      longitude: -122.4324,
+      latitude: 37.33934,
+      longitude: -121.880739,
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
     },
