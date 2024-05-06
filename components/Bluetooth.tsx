@@ -156,10 +156,10 @@ async function readBLECharacteristic(): Promise<string | null> {
           }
           if (characteristic?.value) {
             const decodedData = base64.decode(characteristic.value);
-            // console.log(
-            //   "Received Notification with Decoded Data:",
-            //   decodedData
-            // );
+            console.log(
+              "Received Notification with Decoded Data:",
+              decodedData
+            );
             resolve(decodedData);
           }
         }
@@ -222,30 +222,30 @@ export default function Bluetooth({
     }
 
     const regionArray = regiondata.split(/[:\n]/);
-    // console.log("regionArray: ", regionArray);
+    console.log("regionArray: ", regionArray);
+    let latitude_update = 0;
+    let longitude_update = 0;
 
-    if (regionArray.length < 4) {
+    if (regionArray.length < 2) {
       console.warn(
-        "updateRegion: Expected regiondata to have at least 4 elements"
+        "updateRegion: Expected regiondata to have at least 2 elements"
       );
       return region;
     }
 
     if (regionArray[0] == "LAT") {
-      const lat_temp = parseInt(regionArray[1]);
-      const latitude_update = lat_temp / 1000000;
-      console.log("latitude_update: ", region.latitude + latitude_update);
-
-      const long_temp = parseInt(regionArray[3]);
-      const longitude_update = long_temp / 1000000;
-      console.log("longitude_update: ", region.longitude + longitude_update);
-
-      return {
-        ...region,
-        latitude: region.latitude + latitude_update,
-        longitude: region.longitude + longitude_update,
-      };
+      latitude_update = parseFloat(regionArray[1]);
+      console.log("latitude_update: ", latitude_update);
+    } else if (regionArray[0] == "LONG") {
+      longitude_update = parseFloat(regionArray[1]);
+      console.log("longitude_update: ", longitude_update);
     }
+
+    return {
+      ...region,
+      latitude: latitude_update == 0 ? region.latitude : latitude_update,
+      longitude: longitude_update == 0 ? region.longitude : longitude_update,
+    };
 
     return region;
   };
@@ -265,12 +265,7 @@ export default function Bluetooth({
   useEffect(() => {
     const fetchData = async () => {
       if (go) {
-        stopMonitoringBLECharacteristic();
-        // writeBLECharacteristic(
-        //   `GO!!,LAT:${region.latitude.toFixed(
-        //     6
-        //   )},LONG:${region.longitude.toFixed(6)}`
-        // );
+        // stopMonitoringBLECharacteristic();
         writeBLECharacteristic(`GO!!\n`);
         writeBLECharacteristic(`LAT:${region.latitude.toFixed(6)}\n`);
         writeBLECharacteristic(`LONG:${region.longitude.toFixed(6)}\n`);
@@ -283,8 +278,6 @@ export default function Bluetooth({
       } else {
         try {
           const data = await readBLECharacteristic();
-          // console.log("data read: ", data);
-          // Alert.alert(`data received: ${data}`);
           if (data) {
             const updatedRegion = updateRegion(data);
             setRegion(updatedRegion);
@@ -299,12 +292,12 @@ export default function Bluetooth({
     };
 
     fetchData();
-  }, [go, region, updateRegion]);
+  }, [go]);
 
   return (
     <>
       {deviceId ? <Text>{deviceId}</Text> : <Text>Device ID not provided</Text>}
-      <Button title={go ? "Stop" : "go"} onPress={() => setGo(!go)} />
+      <Button title={go ? "STOP" : "GO"} onPress={() => setGo(!go)} />
     </>
   );
 }

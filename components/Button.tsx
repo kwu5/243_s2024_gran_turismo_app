@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 
 interface ButtonProps {
@@ -7,6 +7,8 @@ interface ButtonProps {
 }
 
 export default function Button({ title, onPress }: ButtonProps) {
+  const [isHighlighted, setIsHighlighted] = useState(false);
+
   return (
     <View
       style={[
@@ -15,6 +17,12 @@ export default function Button({ title, onPress }: ButtonProps) {
       ]}
     >
       <TouchableOpacity style={styles.button} onPress={onPress}>
+        {/* <TouchableOpacity
+        style={[styles.button, isHighlighted && styles.highlighted]}
+        onPressIn={() => setIsHighlighted(true)}
+        onPressOut={() => setIsHighlighted(false)}
+        onPress={onPress}
+      > */}
         <Text style={styles.buttonLabel}>{title}</Text>
       </TouchableOpacity>
     </View>
@@ -38,6 +46,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
+  },
+  highlighted: {
+    backgroundColor: "#007BFF", // Highlight color
   },
   buttonIcon: {
     paddingRight: 8,
