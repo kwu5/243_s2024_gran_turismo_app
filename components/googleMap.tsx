@@ -16,10 +16,10 @@ interface googleMapProps {
 export const getInitialState = (): { region: Region } => {
   return {
     region: {
-      latitude: 37.33934,
-      longitude: -121.880739,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
+      latitude: 37.33935,
+      longitude: -121.88074,
+      latitudeDelta: 0.0022,
+      longitudeDelta: 0.0021,
     },
   };
 };
