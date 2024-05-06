@@ -7,7 +7,7 @@ import {
 import { Alert, PermissionsAndroid, Platform, Text } from "react-native";
 import base64 from "react-native-base64";
 import ErrorToast from "./ErrorToast";
-import { Children, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "./Button";
 import { Region } from "react-native-maps";
 import React from "react";
@@ -108,11 +108,11 @@ async function initBLEConnection(
     const services = await connectedDevice.services();
 
     for (const service of services) {
-      console.log(`Service: ${service.uuid}`);
+      // console.log(`Service: ${service.uuid}`);
       const characteristics = await service.characteristics();
-      for (const characteristic of characteristics) {
-        console.log(`  Characteristic: ${characteristic.uuid}`);
-      }
+      // for (const characteristic of characteristics) {
+      //   console.log(`  Characteristic: ${characteristic.uuid}`);
+      // }
     }
 
     const customService = services.find((s) => s.uuid === serviceUUID);
@@ -137,30 +137,6 @@ async function initBLEConnection(
     return false;
   }
 }
-
-// async function readBLECharacteristic(): Promise<string | null> {
-//   if (characteristicReference == null) {
-//     return null;
-//   }
-
-//   notificationSubscription = characteristicReference.monitor(
-//     (error, characteristic) => {
-//       if (error) {
-//         console.error(
-//           "readBLECharacteristic: Error during notification setup:",
-//           error
-//         );
-
-//       }
-//       if (characteristic?.value) {
-//         const decodedData = base64.decode(characteristic.value);
-//         console.log("Received Notification with Decoded Data:", decodedData);
-//         return decodedData;
-//       }
-//     }
-//   );
-
-// }
 
 async function readBLECharacteristic(): Promise<string | null> {
   if (characteristicReference == null) {
@@ -194,14 +170,31 @@ async function readBLECharacteristic(): Promise<string | null> {
 
 async function writeBLECharacteristic(data: string): Promise<void> {
   if (characteristicReference == null) {
+    console.error("Characteristic reference is not provided.");
     return;
   }
 
-  const encodedData = base64.encode(data);
-  await characteristicReference.writeWithoutResponse(encodedData);
-  console.log("Data has been written to BLE: ", data);
-}
+  if (!characteristicReference.isWritableWithoutResponse) {
+    console.error(
+      "This characteristic does not support write without response."
+    );
+    return;
+  }
 
+  if (!characteristicReference) {
+    console.log("No characteristic reference available.");
+    return;
+  }
+
+  try {
+    const encodedData = base64.encode(data);
+
+    await characteristicReference.writeWithoutResponse(encodedData);
+    console.log("Data has been written to BLE without response: ", data);
+  } catch (error) {
+    console.error("Failed to write data to BLE without response:", error);
+  }
+}
 function stopMonitoringBLECharacteristic() {
   if (notificationSubscription) {
     notificationSubscription.remove();
@@ -228,20 +221,33 @@ export default function Bluetooth({
       return region;
     }
 
-    const regionArray = regiondata.split(",");
-    if (regionArray.length < 3) {
+    const regionArray = regiondata.split(/[:\n]/);
+    // console.log("regionArray: ", regionArray);
+
+    if (regionArray.length < 4) {
       console.warn(
-        "updateRegion: Expected regiondata to contain at least three elements"
+        "updateRegion: Expected regiondata to have at least 4 elements"
       );
       return region;
     }
 
-    console.log("regionArray: ", regionArray);
-    return {
-      ...region,
-      latitude: parseFloat(regionArray[1]),
-      longitude: parseFloat(regionArray[2]),
-    };
+    if (regionArray[0] == "LAT") {
+      const lat_temp = parseInt(regionArray[1]);
+      const latitude_update = lat_temp / 1000000;
+      console.log("latitude_update: ", region.latitude + latitude_update);
+
+      const long_temp = parseInt(regionArray[3]);
+      const longitude_update = long_temp / 1000000;
+      console.log("longitude_update: ", region.longitude + longitude_update);
+
+      return {
+        ...region,
+        latitude: region.latitude + latitude_update,
+        longitude: region.longitude + longitude_update,
+      };
+    }
+
+    return region;
   };
 
   useEffect(() => {
@@ -260,21 +266,24 @@ export default function Bluetooth({
     const fetchData = async () => {
       if (go) {
         stopMonitoringBLECharacteristic();
-        writeBLECharacteristic(
-          `GO!!,LAT:${region.latitude.toFixed(
-            6
-          )},LONG:${region.longitude.toFixed(6)}`
-        );
+        // writeBLECharacteristic(
+        //   `GO!!,LAT:${region.latitude.toFixed(
+        //     6
+        //   )},LONG:${region.longitude.toFixed(6)}`
+        // );
+        writeBLECharacteristic(`GO!!\n`);
+        writeBLECharacteristic(`LAT:${region.latitude.toFixed(6)}\n`);
+        writeBLECharacteristic(`LONG:${region.longitude.toFixed(6)}\n`);
 
         Alert.alert(
           `data sent: ${region.latitude.toFixed(6)},${region.longitude.toFixed(
             6
           )}`
         );
-
+      } else {
         try {
           const data = await readBLECharacteristic();
-          console.log("data: ", data);
+          // console.log("data read: ", data);
           // Alert.alert(`data received: ${data}`);
           if (data) {
             const updatedRegion = updateRegion(data);
@@ -283,9 +292,10 @@ export default function Bluetooth({
         } catch (error) {
           console.error("Failed to read BLE characteristic: ", error);
         }
-      } else {
-        stopMonitoringBLECharacteristic();
       }
+      //  else {
+      //   stopMonitoringBLECharacteristic();
+      // }
     };
 
     fetchData();
