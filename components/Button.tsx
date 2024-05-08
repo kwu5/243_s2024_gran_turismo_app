@@ -17,12 +17,6 @@ export default function Button({ title, onPress }: ButtonProps) {
       ]}
     >
       <TouchableOpacity style={styles.button} onPress={onPress}>
-        {/* <TouchableOpacity
-        style={[styles.button, isHighlighted && styles.highlighted]}
-        onPressIn={() => setIsHighlighted(true)}
-        onPressOut={() => setIsHighlighted(false)}
-        onPress={onPress}
-      > */}
         <Text style={styles.buttonLabel}>{title}</Text>
       </TouchableOpacity>
     </View>

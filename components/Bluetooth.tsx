@@ -160,6 +160,7 @@ async function readBLECharacteristic(): Promise<string | null> {
               "Received Notification with Decoded Data:",
               decodedData
             );
+
             resolve(decodedData);
           }
         }
@@ -222,7 +223,7 @@ export default function Bluetooth({
     }
 
     const regionArray = regiondata.split(/[:\n]/);
-    console.log("regionArray: ", regionArray);
+    // console.log("regionArray: ", regionArray);
     let latitude_update = 0;
     let longitude_update = 0;
 
@@ -246,8 +247,6 @@ export default function Bluetooth({
       latitude: latitude_update == 0 ? region.latitude : latitude_update,
       longitude: longitude_update == 0 ? region.longitude : longitude_update,
     };
-
-    return region;
   };
 
   useEffect(() => {
@@ -277,9 +276,14 @@ export default function Bluetooth({
         );
       } else {
         try {
-          const data = await readBLECharacteristic();
-          if (data) {
-            const updatedRegion = updateRegion(data);
+          const data1 = await readBLECharacteristic();
+          const data2 = await readBLECharacteristic();
+          if (data1) {
+            const updatedRegion = updateRegion(data1);
+            setRegion(updatedRegion);
+          }
+          if (data2) {
+            const updatedRegion = updateRegion(data2);
             setRegion(updatedRegion);
           }
         } catch (error) {
