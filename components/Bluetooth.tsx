@@ -25,6 +25,8 @@ interface BluetoothProp {
   characteristicUUID: string | null;
   region: Region;
   setRegion: (region: Region) => void;
+  currentLocation: Region;
+  setCurrentLocation: (region: Region) => void;
 }
 
 const requestBluetoothPermission = async () => {

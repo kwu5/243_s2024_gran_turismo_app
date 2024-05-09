@@ -16,6 +16,9 @@ const bluetoothManager = new BleManager();
 
 export default function App() {
   const [region, setRegion] = useState<Region>(getInitialState().region);
+  const [currentLocation, setCurrentLocation] = useState<Region>(
+    getInitialState().region
+  );
 
   const renderItem = ({ item }: { item: Device }) => (
     <Text>
@@ -38,6 +41,8 @@ export default function App() {
           characteristicUUID={"0000ffe1-0000-1000-8000-00805f9b34fb"}
           region={region}
           setRegion={setRegion}
+          currentLocation={currentLocation}
+          setCurrentLocation={setCurrentLocation}
         />
       </View>
     </>
