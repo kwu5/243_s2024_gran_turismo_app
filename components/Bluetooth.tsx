@@ -215,6 +215,8 @@ export default function Bluetooth({
   characteristicUUID,
   region,
   setRegion,
+  currentLocation,
+  setCurrentLocation,
 }: BluetoothProp) {
   const [go, setGo] = useState(false);
 
