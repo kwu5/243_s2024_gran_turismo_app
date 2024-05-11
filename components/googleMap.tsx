@@ -24,19 +24,6 @@ export const getInitialState = (): { region: Region } => {
   };
 };
 
-//   const onRegionChange = (region: State['region']) => {
-//     this.setState({ region });
-//   };
-
-//   render() {
-//     return (
-//       <MapView
-//         region={this.state.region}
-//         onRegionChange={this.onRegionChange}
-//       />
-//     );
-//   }
-
 export default function GoogleMap({ region, setRegion }: googleMapProps) {
   //   const [region, setRegion] = useState<Region>(getInitialState().region);
   const [marker, setMarker] = useState<LatLng>();
@@ -56,7 +43,7 @@ export default function GoogleMap({ region, setRegion }: googleMapProps) {
           "getCurrentPosition fail, use default location, error:",
           error.message
         ),
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 1000 }
+      { enableHighAccuracy: true, timeout: 3000, maximumAge: 1000 }
     );
     console.log("Map: initalizing current location.");
   }, []);
@@ -84,7 +71,7 @@ export default function GoogleMap({ region, setRegion }: googleMapProps) {
 
 const styles = StyleSheet.create({
   map: {
-    width: "70%",
-    height: "70%",
+    width: "90%",
+    height: "90%",
   },
 });

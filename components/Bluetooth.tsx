@@ -4,7 +4,14 @@ import {
   Device,
   Subscription,
 } from "react-native-ble-plx";
-import { Alert, PermissionsAndroid, Platform, Text } from "react-native";
+import {
+  Alert,
+  PermissionsAndroid,
+  Platform,
+  Text,
+  StyleSheet,
+  View,
+} from "react-native";
 import base64 from "react-native-base64";
 import ErrorToast from "./ErrorToast";
 import { useEffect, useState } from "react";
@@ -25,6 +32,8 @@ interface BluetoothProp {
   characteristicUUID: string | null;
   region: Region;
   setRegion: (region: Region) => void;
+  currentLocation: Region;
+  // setCurrentLocation: (region: Region) => void;
 }
 
 const requestBluetoothPermission = async () => {
@@ -160,6 +169,7 @@ async function readBLECharacteristic(): Promise<string | null> {
               "Received Notification with Decoded Data:",
               decodedData
             );
+
             resolve(decodedData);
           }
         }
@@ -212,7 +222,9 @@ export default function Bluetooth({
   characteristicUUID,
   region,
   setRegion,
-}: BluetoothProp) {
+  currentLocation,
+}: // setCurrentLocation,
+BluetoothProp) {
   const [go, setGo] = useState(false);
 
   const updateRegion = (regiondata: string): Region => {
@@ -222,7 +234,7 @@ export default function Bluetooth({
     }
 
     const regionArray = regiondata.split(/[:\n]/);
-    console.log("regionArray: ", regionArray);
+    // console.log("regionArray: ", regionArray);
     let latitude_update = 0;
     let longitude_update = 0;
 
@@ -246,15 +258,11 @@ export default function Bluetooth({
       latitude: latitude_update == 0 ? region.latitude : latitude_update,
       longitude: longitude_update == 0 ? region.longitude : longitude_update,
     };
-
-    return region;
   };
 
   useEffect(() => {
     requestBluetoothPermission().then((result) => {
-      console.log(
-        "Android detected, requestBluetoothPermission is " + [result]
-      );
+      console.log("RequestBluetoothPermission on this device is " + [result]);
       if (result) {
         console.log("Scanning for devices");
         initBluetooth(deviceName, deviceId, serviceUUID, characteristicUUID);
@@ -277,9 +285,14 @@ export default function Bluetooth({
         );
       } else {
         try {
-          const data = await readBLECharacteristic();
-          if (data) {
-            const updatedRegion = updateRegion(data);
+          const data1 = await readBLECharacteristic();
+          const data2 = await readBLECharacteristic();
+          if (data1) {
+            const updatedRegion = updateRegion(data1);
+            setRegion(updatedRegion);
+          }
+          if (data2) {
+            const updatedRegion = updateRegion(data2);
             setRegion(updatedRegion);
           }
         } catch (error) {
@@ -295,9 +308,16 @@ export default function Bluetooth({
   }, [go]);
 
   return (
-    <>
+    <View style={styles.bluetooth}>
       {deviceId ? <Text>{deviceId}</Text> : <Text>Device ID not provided</Text>}
       <Button title={go ? "STOP" : "GO"} onPress={() => setGo(!go)} />
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  bluetooth: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
