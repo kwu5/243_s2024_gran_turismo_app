@@ -6,9 +6,9 @@ The project use : **React Native** with TypeScript and Expo;
 
 
 ### To do
-- Display some log data on app (by tonight)
-- Keep update the current coord on app recursively  (by Saturday)
-- Display car location on app (by Saturday)
+
+- Keep update the current coord on app recursively  
+- Display car location on app 
 - Implement to send 'STOP' from Bridge to driver
   
 
