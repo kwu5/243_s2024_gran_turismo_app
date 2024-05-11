@@ -4,7 +4,14 @@ import {
   Device,
   Subscription,
 } from "react-native-ble-plx";
-import { Alert, PermissionsAndroid, Platform, Text } from "react-native";
+import {
+  Alert,
+  PermissionsAndroid,
+  Platform,
+  Text,
+  StyleSheet,
+  View,
+} from "react-native";
 import base64 from "react-native-base64";
 import ErrorToast from "./ErrorToast";
 import { useEffect, useState } from "react";
@@ -26,7 +33,7 @@ interface BluetoothProp {
   region: Region;
   setRegion: (region: Region) => void;
   currentLocation: Region;
-  setCurrentLocation: (region: Region) => void;
+  // setCurrentLocation: (region: Region) => void;
 }
 
 const requestBluetoothPermission = async () => {
@@ -216,8 +223,8 @@ export default function Bluetooth({
   region,
   setRegion,
   currentLocation,
-  setCurrentLocation,
-}: BluetoothProp) {
+}: // setCurrentLocation,
+BluetoothProp) {
   const [go, setGo] = useState(false);
 
   const updateRegion = (regiondata: string): Region => {
@@ -255,9 +262,7 @@ export default function Bluetooth({
 
   useEffect(() => {
     requestBluetoothPermission().then((result) => {
-      console.log(
-        "Android detected, requestBluetoothPermission is " + [result]
-      );
+      console.log("RequestBluetoothPermission on this device is " + [result]);
       if (result) {
         console.log("Scanning for devices");
         initBluetooth(deviceName, deviceId, serviceUUID, characteristicUUID);
@@ -303,9 +308,16 @@ export default function Bluetooth({
   }, [go]);
 
   return (
-    <>
+    <View style={styles.bluetooth}>
       {deviceId ? <Text>{deviceId}</Text> : <Text>Device ID not provided</Text>}
       <Button title={go ? "STOP" : "GO"} onPress={() => setGo(!go)} />
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  bluetooth: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

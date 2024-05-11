@@ -11,6 +11,7 @@ import ErrorToast from "./components/ErrorToast";
 import Bluetooth from "./components/Bluetooth";
 import GoogleMap, { getInitialState } from "./components/googleMap";
 import { Region } from "react-native-maps";
+import DataDisplayView from "./components/DataDisplayView";
 
 const bluetoothManager = new BleManager();
 
@@ -34,6 +35,8 @@ export default function App() {
           <GoogleMap region={region} setRegion={setRegion} />
         </View>
 
+        <DataDisplayView region={region} currentLocation={currentLocation} />
+
         <Bluetooth
           deviceName={"DSD TECH"}
           deviceId={"68:5E:1C:4C:36:F6DSD TECH"}
@@ -42,7 +45,6 @@ export default function App() {
           region={region}
           setRegion={setRegion}
           currentLocation={currentLocation}
-          setCurrentLocation={setCurrentLocation}
         />
       </View>
     </>
@@ -55,16 +57,18 @@ const styles = StyleSheet.create({
     marginTop: 50,
     paddingHorizontal: 20,
     backgroundColor: "#FFFFFF",
-    alignItems: "center",
+    // alignItems: "center",
     justifyContent: "center",
   },
 
   mapContainer: {
     width: "100%",
     flex: 1,
-    backgroundColor: "#fff",
+    // backgroundColor: "#808080",
+    backgroundColor: "#FFFFFF",
+
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
   },
 
   zoomButtons: {
@@ -75,7 +79,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   button: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     padding: 10,
     borderRadius: 5,
     marginVertical: 10,
