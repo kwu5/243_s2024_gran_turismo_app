@@ -34,7 +34,6 @@ interface BluetoothProp {
   setDestination: (region: Region) => void;
   setCurrentLocation: (region: Region) => void;
   currentLocation: Region;
-  // setCurrentLocation: (region: Region) => void;
 }
 
 const requestBluetoothPermission = async () => {
@@ -117,13 +116,9 @@ async function initBLEConnection(
     await connectedDevice.discoverAllServicesAndCharacteristics();
     const services = await connectedDevice.services();
 
-    for (const service of services) {
-      // console.log(`Service: ${service.uuid}`);
-      const characteristics = await service.characteristics();
-      // for (const characteristic of characteristics) {
-      //   console.log(`  Characteristic: ${characteristic.uuid}`);
-      // }
-    }
+    // for (const service of services) {
+    //   const characteristics = await service.characteristics();
+    // }
 
     const customService = services.find((s) => s.uuid === serviceUUID);
     if (!customService) {
@@ -166,10 +161,10 @@ async function readBLECharacteristic(): Promise<string | null> {
           }
           if (characteristic?.value) {
             const decodedData = base64.decode(characteristic.value);
-            console.log(
-              "Received Notification with Decoded Data:",
-              decodedData
-            );
+            // console.log(
+            //   "Received Decoded Data:",
+            //   decodedData
+            // );
 
             resolve(decodedData);
           }
@@ -227,7 +222,6 @@ export default function Bluetooth({
   setDestination,
 }: BluetoothProp) {
   const [go, setGo] = useState(false);
-  const [readData, setReadData] = useState(true);
 
   const updateCurrentLocation = (regiondata: string): Region => {
     let latitude_update = 0;
@@ -240,7 +234,7 @@ export default function Bluetooth({
     }
 
     const regionArray = regiondata.split(/[:\n]/);
-    // console.log("regionArray: ", regionArray);
+    console.log("updateCurrentLocation: ", regionArray);
 
     if (regionArray.length < 2) {
       console.warn(
@@ -254,10 +248,10 @@ export default function Bluetooth({
 
     if (regionArray[0] == "LAT") {
       latitude_update = parseFloat(regionArray[1]);
-      console.log("latitude_update: ", latitude_update);
+      // console.log("latitude_update: ", latitude_update);
     } else if (regionArray[0] == "LONG") {
       longitude_update = parseFloat(regionArray[1]);
-      console.log("longitude_update: ", longitude_update);
+      // console.log("longitude_update: ", longitude_update);
     }
 
     return {
@@ -283,13 +277,19 @@ export default function Bluetooth({
           const updatedCurrentLocation = updateCurrentLocation(data2);
           setCurrentLocation(updatedCurrentLocation);
         }
-        setTimeout(fetchData, 1000);
       } catch (error) {
         console.error("Failed to read BLE characteristic: ", error);
         Alert.alert("Failed to read data");
       }
     };
-    fetchData();
+
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 1500);
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {

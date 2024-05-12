@@ -5,13 +5,6 @@ The project use : **React Native** with TypeScript and Expo;
 - It can read current/destination coordinate from/to bridge. It send North garage coord as defult if you send destination before marking on the map
 
 
-### To do
-
-- Keep update the current coord on app recursively  
-- Display car location on app 
-- Implement to send 'STOP' from Bridge to driver
-  
-
 
 ### To run
 * Install Expo go on your device; Install Expo on your PC.

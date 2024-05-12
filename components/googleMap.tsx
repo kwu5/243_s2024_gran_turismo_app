@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { LatLng, Marker, Region } from "react-native-maps";
-import Geolocation from "@react-native-community/geolocation";
 import React from "react";
 
 interface googleMapProps {
@@ -26,6 +25,13 @@ export const getInitialRegion = (): { region: Region } => {
   };
 };
 
+const regionToLatLng = (region: Region): LatLng => {
+  return {
+    latitude: region.latitude,
+    longitude: region.longitude,
+  };
+};
+
 export default function GoogleMap({
   currentLocation,
   setCurrentLocation,
@@ -33,26 +39,13 @@ export default function GoogleMap({
   setDestination,
 }: googleMapProps) {
   const [marker, setMarker] = useState<LatLng>();
+  const [currentLocMarker, setCurrentLocMarker] = useState<LatLng>();
 
-  // useEffect(() => {
-  // Geolocation.getCurrentPosition(
-  //   (position) => {
-  //     setDestination({
-  //       latitude: position.coords.latitude,
-  //       longitude: position.coords.longitude,
-  //       latitudeDelta: 0.0922,
-  //       longitudeDelta: 0.0421,
-  //     });
-  //   },
-  //   (error) =>
-  //     console.log(
-  //       "GetCurrentPosition fail, using default location:",
-  //       error.message
-  //     ),
-  //   { enableHighAccuracy: true, timeout: 3000, maximumAge: 1000 }
-  // );
-  // console.log("Map: initalizing current location.");
-  // }, []);
+  useEffect(() => {
+    if (currentLocation) {
+      setCurrentLocMarker(regionToLatLng(currentLocation));
+    }
+  }, [currentLocation]);
 
   return (
     <MapView
@@ -63,6 +56,7 @@ export default function GoogleMap({
       onPress={(e) => {
         console.log(e.nativeEvent.coordinate);
         setMarker(e.nativeEvent.coordinate);
+
         setDestination({
           ...destination,
           latitude: e.nativeEvent.coordinate.latitude,
@@ -71,6 +65,12 @@ export default function GoogleMap({
       }}
     >
       {marker && <Marker coordinate={marker} />}
+      {currentLocMarker && (
+        <Marker
+          coordinate={currentLocMarker}
+          image={require("../assets/images/Map-Marker.png")}
+        />
+      )}
     </MapView>
   );
 }
