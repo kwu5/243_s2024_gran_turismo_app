@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import { Region } from "react-native-maps";
-import { getInitialState } from "./googleMap";
+
 import { Text, View, StyleSheet } from "react-native";
 
 export interface DataDisplayProps {
-  region: Region;
-  // setRegion: (region: Region) => void;
+  destination: Region;
+  setDestination: (region: Region) => void;
   currentLocation: Region;
-  // setCurrentLocation: (region: Region) => void;
+  setCurrentLocation: (region: Region) => void;
 }
 
 export default function DataDisplayView({
-  region,
+  destination,
+  setDestination,
   currentLocation,
+  setCurrentLocation,
 }: DataDisplayProps) {
   return (
     <View style={styles.textContainer}>
@@ -25,8 +27,8 @@ export default function DataDisplayView({
       }
       {
         <Text>
-          destination:<Text style={styles.data}>{region.latitude}</Text>,
-          <Text style={styles.data}>{region.longitude}</Text>
+          destination:<Text style={styles.data}>{destination.latitude}</Text>,
+          <Text style={styles.data}>{destination.longitude}</Text>
         </Text>
       }
     </View>

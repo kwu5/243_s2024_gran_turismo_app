@@ -3,22 +3,21 @@ import { StyleSheet, Text, View, Image, FlatList } from "react-native";
 import { Device } from "react-native-ble-plx";
 import React, { useEffect, useState } from "react";
 
-import Button from "./components/Button";
 import { BleManager, Characteristic } from "react-native-ble-plx";
-import { PermissionsAndroid, Platform } from "react-native";
 import base64 from "react-native-base64";
-import ErrorToast from "./components/ErrorToast";
 import Bluetooth from "./components/Bluetooth";
-import GoogleMap, { getInitialState } from "./components/googleMap";
+import GoogleMap, { getInitialRegion } from "./components/googleMap";
 import { Region } from "react-native-maps";
 import DataDisplayView from "./components/DataDisplayView";
 
 const bluetoothManager = new BleManager();
 
 export default function App() {
-  const [region, setRegion] = useState<Region>(getInitialState().region);
   const [currentLocation, setCurrentLocation] = useState<Region>(
-    getInitialState().region
+    getInitialRegion().region
+  );
+  const [destination, setDestination] = useState<Region>(
+    getInitialRegion().region
   );
 
   const renderItem = ({ item }: { item: Device }) => (
@@ -32,18 +31,29 @@ export default function App() {
       <StatusBar style="auto" />
       <View style={styles.container}>
         <View style={styles.mapContainer}>
-          <GoogleMap region={region} setRegion={setRegion} />
+          <GoogleMap
+            destination={destination}
+            setDestination={setDestination}
+            currentLocation={currentLocation}
+            setCurrentLocation={setCurrentLocation}
+          />
         </View>
 
-        <DataDisplayView region={region} currentLocation={currentLocation} />
+        <DataDisplayView
+          destination={destination}
+          setDestination={setDestination}
+          currentLocation={currentLocation}
+          setCurrentLocation={setCurrentLocation}
+        />
 
         <Bluetooth
           deviceName={"DSD TECH"}
           deviceId={"68:5E:1C:4C:36:F6DSD TECH"}
           serviceUUID={"0000ffe0-0000-1000-8000-00805f9b34fb"}
           characteristicUUID={"0000ffe1-0000-1000-8000-00805f9b34fb"}
-          region={region}
-          setRegion={setRegion}
+          setDestination={setDestination}
+          destination={destination}
+          setCurrentLocation={setCurrentLocation}
           currentLocation={currentLocation}
         />
       </View>

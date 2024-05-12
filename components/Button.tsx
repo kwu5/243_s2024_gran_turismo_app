@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   highlighted: {
-    backgroundColor: "#007BFF", // Highlight color
+    backgroundColor: "#007BFF",
   },
   buttonIcon: {
     paddingRight: 8,

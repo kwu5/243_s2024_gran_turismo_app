@@ -30,8 +30,9 @@ interface BluetoothProp {
   deviceId: string | null;
   serviceUUID: string | null;
   characteristicUUID: string | null;
-  region: Region;
-  setRegion: (region: Region) => void;
+  destination: Region;
+  setDestination: (region: Region) => void;
+  setCurrentLocation: (region: Region) => void;
   currentLocation: Region;
   // setCurrentLocation: (region: Region) => void;
 }
@@ -220,29 +221,35 @@ export default function Bluetooth({
   deviceId,
   serviceUUID,
   characteristicUUID,
-  region,
-  setRegion,
   currentLocation,
-}: // setCurrentLocation,
-BluetoothProp) {
+  setCurrentLocation,
+  destination,
+  setDestination,
+}: BluetoothProp) {
   const [go, setGo] = useState(false);
+  const [readData, setReadData] = useState(true);
 
-  const updateRegion = (regiondata: string): Region => {
+  const updateCurrentLocation = (regiondata: string): Region => {
+    let latitude_update = 0;
+    let longitude_update = 0;
+
     if (typeof regiondata !== "string") {
-      console.warn("updateRegion: Expected regiondata to be a string");
-      return region;
+      console.warn("updateCurrentLocation: Expected regiondata to be a string");
+      Alert.alert("updateCurrentLocation: Expected regiondata to be a string");
+      return currentLocation;
     }
 
     const regionArray = regiondata.split(/[:\n]/);
     // console.log("regionArray: ", regionArray);
-    let latitude_update = 0;
-    let longitude_update = 0;
 
     if (regionArray.length < 2) {
       console.warn(
-        "updateRegion: Expected regiondata to have at least 2 elements"
+        "updateCurrentLocation: Expected regiondata to have at least 2 elements"
       );
-      return region;
+      Alert.alert(
+        "updateCurrentLocation: Expected regiondata to have at least 2 elements"
+      );
+      return currentLocation;
     }
 
     if (regionArray[0] == "LAT") {
@@ -254,11 +261,36 @@ BluetoothProp) {
     }
 
     return {
-      ...region,
-      latitude: latitude_update == 0 ? region.latitude : latitude_update,
-      longitude: longitude_update == 0 ? region.longitude : longitude_update,
+      ...currentLocation,
+      latitude:
+        latitude_update == 0 ? currentLocation.latitude : latitude_update,
+      longitude:
+        longitude_update == 0 ? currentLocation.longitude : longitude_update,
     };
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        //data1 and data2 are the lat and long that are read from the BLE characteristic in two separate reads
+        const data1 = await readBLECharacteristic();
+        const data2 = await readBLECharacteristic();
+        if (data1) {
+          const updatedCurrentLocation = updateCurrentLocation(data1);
+          setCurrentLocation(updatedCurrentLocation);
+        }
+        if (data2) {
+          const updatedCurrentLocation = updateCurrentLocation(data2);
+          setCurrentLocation(updatedCurrentLocation);
+        }
+        setTimeout(fetchData, 1000);
+      } catch (error) {
+        console.error("Failed to read BLE characteristic: ", error);
+        Alert.alert("Failed to read data");
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     requestBluetoothPermission().then((result) => {
@@ -271,40 +303,22 @@ BluetoothProp) {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (go) {
-        // stopMonitoringBLECharacteristic();
-        writeBLECharacteristic(`GO!!\n`);
-        writeBLECharacteristic(`LAT:${region.latitude.toFixed(6)}\n`);
-        writeBLECharacteristic(`LONG:${region.longitude.toFixed(6)}\n`);
+    const sendData = async () => {
+      // stopMonitoringBLECharacteristic();
+      writeBLECharacteristic(`GO!!\n`);
+      writeBLECharacteristic(`LAT:${destination.latitude.toFixed(6)}\n`);
+      writeBLECharacteristic(`LONG:${destination.longitude.toFixed(6)}\n`);
 
-        Alert.alert(
-          `data sent: ${region.latitude.toFixed(6)},${region.longitude.toFixed(
-            6
-          )}`
-        );
-      } else {
-        try {
-          const data1 = await readBLECharacteristic();
-          const data2 = await readBLECharacteristic();
-          if (data1) {
-            const updatedRegion = updateRegion(data1);
-            setRegion(updatedRegion);
-          }
-          if (data2) {
-            const updatedRegion = updateRegion(data2);
-            setRegion(updatedRegion);
-          }
-        } catch (error) {
-          console.error("Failed to read BLE characteristic: ", error);
-        }
-      }
-      //  else {
-      //   stopMonitoringBLECharacteristic();
-      // }
+      Alert.alert(
+        `data sent: ${destination.latitude.toFixed(
+          6
+        )},${destination.longitude.toFixed(6)}`
+      );
     };
 
-    fetchData();
+    if (go) {
+      sendData();
+    }
   }, [go]);
 
   return (
