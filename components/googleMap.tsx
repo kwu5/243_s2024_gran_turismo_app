@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import MapView, { LatLng, Marker, Region } from "react-native-maps";
 import React from "react";
 
@@ -34,44 +34,43 @@ const regionToLatLng = (region: Region): LatLng => {
 
 export default function GoogleMap({
   currentLocation,
-  setCurrentLocation,
+
   destination,
   setDestination,
 }: googleMapProps) {
-  const [marker, setMarker] = useState<LatLng>();
-  const [currentLocMarker, setCurrentLocMarker] = useState<LatLng>();
-
-  useEffect(() => {
-    if (currentLocation) {
-      setCurrentLocMarker(regionToLatLng(currentLocation));
-    }
-  }, [currentLocation]);
-
   return (
-    <MapView
-      style={styles.map}
-      provider="google"
-      mapType="satellite"
-      initialRegion={getInitialRegion().region}
-      onPress={(e) => {
-        console.log(e.nativeEvent.coordinate);
-        setMarker(e.nativeEvent.coordinate);
+    <>
+      <Text>{currentLocation.latitude + " " + currentLocation.longitude}</Text>
+      <MapView
+        style={styles.map}
+        provider="google"
+        mapType="satellite"
+        initialRegion={getInitialRegion().region}
+        onPress={(e) => {
+          console.log(e.nativeEvent.coordinate);
 
-        setDestination({
-          ...destination,
-          latitude: e.nativeEvent.coordinate.latitude,
-          longitude: e.nativeEvent.coordinate.longitude,
-        });
-      }}
-    >
-      {marker && <Marker coordinate={marker} />}
-      {currentLocMarker && (
-        <Marker
-          coordinate={currentLocMarker}
+          setDestination({
+            ...destination,
+            latitude: e.nativeEvent.coordinate.latitude,
+            longitude: e.nativeEvent.coordinate.longitude,
+          });
+        }}
+      >
+        <Marker coordinate={regionToLatLng(destination)} />
+        {currentLocation &&
+          currentLocation.latitude &&
+          currentLocation.longitude && (
+            <Marker
+              coordinate={regionToLatLng(currentLocation)}
+              image={require("../assets/images/Map-Marker.png")}
+            />
+          )}
+        {/* <Marker
+          coordinate={regionToLatLng(currentLocation)}
           image={require("../assets/images/Map-Marker.png")}
-        />
-      )}
-    </MapView>
+        /> */}
+      </MapView>
+    </>
   );
 }
 
