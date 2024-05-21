@@ -1,21 +1,22 @@
 import React, { useState } from "react";
-import { Region } from "react-native-maps";
+import { Region, LatLng } from "react-native-maps";
 
 import { Text, View, StyleSheet } from "react-native";
 
 export interface DataDisplayProps {
-  destination: Region;
-  setDestination: (region: Region) => void;
+  destination: LatLng;
   currentLocation: Region;
-  setCurrentLocation: (region: Region) => void;
+  sensorData: any;
 }
 
 export default function DataDisplayView({
   destination,
-  setDestination,
   currentLocation,
-  setCurrentLocation,
+  sensorData,
 }: DataDisplayProps) {
+  const { str1, str2, str3 } = sensorData;
+  const concatenatedString = str1 + str2 + str3;
+
   return (
     <View style={styles.textContainer}>
       {
@@ -29,6 +30,11 @@ export default function DataDisplayView({
         <Text>
           destination:<Text style={styles.data}>{destination.latitude}</Text>,
           <Text style={styles.data}>{destination.longitude}</Text>
+        </Text>
+      }
+      {
+        <Text>
+          sensorData:<Text style={styles.data}>{concatenatedString}</Text>
         </Text>
       }
     </View>

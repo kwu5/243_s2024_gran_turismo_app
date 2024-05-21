@@ -2,16 +2,21 @@
 
 The project use : **React Native** with TypeScript and Expo;  
 
-- It can read current/destination coordinate from/to bridge. It send North garage coord as defult if you send destination before marking on the map
 
 
+### 
+
+```
+Fix the UI; The app has two ways to stop the car.
+
+Read and update the following every one sec; 
+* Read location of RC car as long as it is in bay area;
+* Read sensor data; 
+```
 
 ### To run
-* Install Expo go on your device; Install Expo on your PC.
-* Run ``'npm install``'
-* Connect your android phone to PC. Run ```npx expo prebuild``` to build.
-* Run ```npx expo run:android``` to run.
-
+* Install the .apk 
+ 
 
 ### Reference
 * https://dotintent.github.io/react-native-ble-plx/#introduction

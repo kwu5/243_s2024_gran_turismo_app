@@ -4,16 +4,17 @@ import MapView, { LatLng, Marker, Region } from "react-native-maps";
 import React from "react";
 
 interface googleMapProps {
-  destination: Region;
-  setDestination: (region: Region) => void;
+  destination: LatLng;
+  setDestination: (latLng: LatLng) => void;
   currentLocation: Region;
   setCurrentLocation: (region: Region) => void;
+  handleDestinationChange: (data: any) => void;
 }
 
 /**
  * North garage: 37.33934779382195, -121.88073942010605
+ * Use North garage as the initial location
  */
-
 export const getInitialRegion = (): { region: Region } => {
   return {
     region: {
@@ -25,7 +26,7 @@ export const getInitialRegion = (): { region: Region } => {
   };
 };
 
-const regionToLatLng = (region: Region): LatLng => {
+const regionToLatLng = (region: LatLng): LatLng => {
   return {
     latitude: region.latitude,
     longitude: region.longitude,
@@ -34,13 +35,13 @@ const regionToLatLng = (region: Region): LatLng => {
 
 export default function GoogleMap({
   currentLocation,
-
   destination,
   setDestination,
+  handleDestinationChange,
 }: googleMapProps) {
   return (
     <>
-      <Text>{currentLocation.latitude + " " + currentLocation.longitude}</Text>
+      {/* <Text>{currentLocation.latitude + " " + currentLocation.longitude}</Text> */}
       <MapView
         style={styles.map}
         provider="google"
@@ -48,27 +49,25 @@ export default function GoogleMap({
         initialRegion={getInitialRegion().region}
         onPress={(e) => {
           console.log(e.nativeEvent.coordinate);
-
-          setDestination({
-            ...destination,
+          // setTimeout(changeDestin, 1000);
+          // setDestination({
+          //   ...destination,
+          //   latitude: e.nativeEvent.coordinate.latitude,
+          //   longitude: e.nativeEvent.coordinate.longitude,
+          // });
+          handleDestinationChange({
             latitude: e.nativeEvent.coordinate.latitude,
             longitude: e.nativeEvent.coordinate.longitude,
           });
         }}
       >
-        <Marker coordinate={regionToLatLng(destination)} />
-        {currentLocation &&
-          currentLocation.latitude &&
-          currentLocation.longitude && (
-            <Marker
-              coordinate={regionToLatLng(currentLocation)}
-              image={require("../assets/images/Map-Marker.png")}
-            />
-          )}
-        {/* <Marker
-          coordinate={regionToLatLng(currentLocation)}
-          image={require("../assets/images/Map-Marker.png")}
-        /> */}
+        {destination && <Marker coordinate={destination} />}
+        {currentLocation && (
+          <Marker
+            coordinate={regionToLatLng(currentLocation)}
+            image={require("../assets/images/Map-Marker.png")}
+          />
+        )}
       </MapView>
     </>
   );

@@ -3,8 +3,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
-  FlatList,
   PermissionsAndroid,
   Platform,
   Alert,
@@ -12,19 +10,17 @@ import {
 import { Device, Subscription } from "react-native-ble-plx";
 import React, { useEffect, useState } from "react";
 
-import { BleManager, Characteristic } from "react-native-ble-plx";
+import { BleManager, Characteristic, LogLevel } from "react-native-ble-plx";
 import base64 from "react-native-base64";
-import Bluetooth from "./components/Bluetooth";
 import GoogleMap, { getInitialRegion } from "./components/googleMap";
-import { Region } from "react-native-maps";
+import { Region, LatLng } from "react-native-maps";
 import DataDisplayView from "./components/DataDisplayView";
 import Button from "./components/Button";
 
 type PermissionStatus = "granted" | "denied" | "never_ask_again";
 
-const bluetoothManager = new BleManager();
 let characteristicReference: Characteristic | undefined = undefined;
-let notificationSubscription: Subscription | null = null;
+let deviceConnected: Device | null = null;
 
 const requestBluetoothPermission = async () => {
   if (Platform.OS === "ios") {
@@ -70,124 +66,123 @@ const requestBluetoothPermission = async () => {
   return false;
 };
 
-// const scanAndConnect = async (
-//   deviceName: string | null,
-//   deviceId: string | null,
-//   serviceUUID: string | null,
-//   characteristicUUID: string | null
-// ) => {
-//   bluetoothManager.startDeviceScan(null, null, async (error, device) => {
-//     if (error) {
-//       console.error("ScanAndConnect failed: ", error);
-//       return false;
-//     }
-
-//     if (device && (device.name == deviceName || device.id == deviceId)) {
-//       bluetoothManager.stopDeviceScan();
-//       console.log(`Device found: ${device.name}, id: ${device.id}`);
-
-//       await initBLEConnection(
-//         device,
-//         serviceUUID ? serviceUUID : "",
-//         characteristicUUID ? characteristicUUID : ""
-//       );
-//     }
-//     return false;
-//   });
-// };
-
-// async function initBLEConnection(
-//   device: Device,
-//   serviceUUID: string,
-//   characteristicUUID: string
-// ): Promise<boolean> {
-//   try {
-//     const connectedDevice = await device.connect();
-//     await connectedDevice.discoverAllServicesAndCharacteristics();
-//     const services = await connectedDevice.services();
-
-//     const customService = services.find((s) => s.uuid === serviceUUID);
-//     if (!customService) {
-//       console.error("Custom service: (FFE0) not found");
-//       return false;
-//     }
-
-//     const customCharacteristic = await customService.characteristics();
-//     const characteristic = customCharacteristic.find(
-//       (c) => c.uuid === characteristicUUID
-//     );
-//     if (!characteristic) {
-//       console.error("Custom characteristic: (FFE1) not found");
-//       return false;
-//     }
-
-//     characteristicReference = characteristic;
-//     return true;
-//   } catch (error) {
-//     console.error("Error in initBLEConnection: ", error);
-//     return false;
-//   }
-// }
-
-// async function readBLECharacteristic(): Promise<string | null> {
-//   if (characteristicReference == null) {
-//     return null;
-//   }
-
-//   return new Promise((resolve, reject) => {
-//     try {
-//       if (characteristicReference) {
-//         notificationSubscription = characteristicReference.monitor(
-//           (error, characteristic) => {
-//             if (error) {
-//               console.error(
-//                 "readBLECharacteristic: Error during notification setup:",
-//                 error
-//               );
-//               reject(error);
-//             }
-//             if (characteristic?.value) {
-//               const decodedData = base64.decode(characteristic.value);
-//               // console.log(
-//               //   "Received Decoded Data:",
-//               //   decodedData
-//               // );
-
-//               resolve(decodedData);
-//             }
-//           }
-//         );
-//       }
-//     } catch (error) {
-//       return console.error("Error in readBLECharacteristic: ", error);
-//     }
-//   });
-// }
-
 export default function App() {
+  let bluetoothManager: BleManager;
+  let counter = 0;
+
   const [currentLocation, setCurrentLocation] = useState<Region>(
     getInitialRegion().region
   );
-  const [destination, setDestination] = useState<Region>(
+  const [destination, setDestination] = useState<LatLng>(
     getInitialRegion().region
   );
-  //   const [characteristicReference, setCharacteristicReference] =
-  //     useState<Characteristic>();
-
   const [goState, setGostate] = useState(false);
+  // const [device, setDevice] = useState<Device | null>(null);
+  const [sensorData, setSensorData] = useState({
+    str1: " ",
+    str2: " ",
+    str3: " ",
+  });
 
-  const updateCurrentLocation = (regiondata: string): void => {
-    if (typeof regiondata !== "string") {
-      console.warn("updateCurrentLocation: Expected regiondata to be a string");
+  useEffect(() => {
+    bluetoothManager = new BleManager();
+    const bluetooth_init = async () => {
+      requestBluetoothPermission().then((result) => {
+        console.log("RequestBluetoothPermission on this device is " + [result]);
+        if (result) {
+          console.log("Scanning for devices");
+
+          bluetoothManager.startDeviceScan(null, null, (error, device) => {
+            if (error) {
+              console.error("Scan failed", error);
+              return;
+            }
+
+            if (device && device.name === "DSD TECH") {
+              bluetoothManager.stopDeviceScan();
+              // bluetoothManager.setLogLevel(LogLevel.Verbose);
+
+              device
+                .connect()
+                .then(async (device) => {
+                  deviceConnected = device;
+                  console.log("Connected to device: ", device.id);
+                  Alert.alert("Connected to device: ", device.id);
+                  await subscriptBLE();
+
+                  return device.discoverAllServicesAndCharacteristics();
+                })
+
+                .then((device) => {
+                  return device.services();
+                })
+                .then((services) => {
+                  const promises = services.map((service) =>
+                    service.characteristics()
+                  );
+                  return Promise.all(promises);
+                })
+                .then((characteristicsNestedArray) => {
+                  const characteristics = characteristicsNestedArray.flat();
+                  characteristicReference = characteristics.find(
+                    (char) =>
+                      char.uuid === "0000ffe1-0000-1000-8000-00805f9b34fb"
+                  );
+
+                  if (deviceConnected)
+                    startReadBLECharacteristic(deviceConnected);
+                })
+                .catch((error) => {
+                  console.error("Connection failed", error);
+                });
+            }
+          });
+        }
+      });
+    };
+
+    const subscriptBLE = async () => {
+      // console.log("subscriptBLE: Subscribing to BLE events");
+      if (!deviceConnected) {
+        return;
+      }
+      bluetoothManager.onDeviceDisconnected(
+        deviceConnected.id,
+        (error, device) => {
+          if (error) {
+            console.error(
+              "subscriptBLE: An error occurred while disconnecting",
+              error
+            );
+            return;
+          }
+          console.log(`Device ${device?.id} has disconnected`);
+          Alert.alert("Device has disconnected, attempting to reconnect");
+          reconnectToDevice(device);
+        }
+      );
+    };
+
+    bluetooth_init();
+
+    return () => {
+      bluetoothManager.destroy();
+      // clearInterval(intervalId);
+    };
+  }, []);
+
+  const updateLogdata = (bridgedata: string): void => {
+    if (typeof bridgedata != "string") {
+      console.warn(": Expected bridgedata to be a string");
       return;
     }
 
-    const regionArray = regiondata.split(/[:\n]/);
-    // console.log("updateCurrentLocation: ", regionArray);
+    const regionArray = bridgedata.split(/[:,\n]/);
+    // console.log("updateLogdata: ", regionArray);
 
     if (regionArray.length < 2) {
       console.warn(
-        "updateCurrentLocation: Expected regiondata to have at least 2 elements"
+        "updateLogdata: Expected bridgedata to have at least 2 elements"
       );
       return;
     }
@@ -206,6 +201,33 @@ export default function App() {
         ...prevState,
         longitude: longitude_update,
       }));
+    } else {
+      if (counter == 0) {
+        setSensorData((prevState) => ({
+          ...prevState,
+          str1: bridgedata,
+        }));
+      } else if (counter == 1) {
+        setSensorData((prevState) => ({
+          ...prevState,
+          str2: bridgedata,
+        }));
+      } else if (counter == 2) {
+        setSensorData((prevState) => ({
+          ...prevState,
+          str3: bridgedata,
+        }));
+      }
+      //  else if (counter == 3) {
+      //   setSensorData((prevState) => ({
+      //     ...prevState,
+      //     str4: bridgedata,
+      //   }));
+      // }
+      counter++;
+      if (counter > 2) {
+        counter = 0;
+      }
     }
   };
 
@@ -215,7 +237,7 @@ export default function App() {
       characteristicReference == null ||
       !characteristicReference.isWritableWithoutResponse
     ) {
-      console.error(
+      console.warn(
         "writeBLECharacteristic: No characteristic reference available."
       );
       return;
@@ -230,214 +252,55 @@ export default function App() {
     }
   }
 
-  //mount approach:
-  //   useEffect(() => {
-  //     requestBluetoothPermission().then((result) => {
-  //       console.log("RequestBluetoothPermission on this device is " + [result]);
-  //       if (result) {
-  //         console.log("Scanning for devices");
-  //         scanAndConnect(
-  //           "DSD TECH",
-  //           "68:5E:1C:4C:36:F6DSD TECH",
-  //           "0000ffe0-0000-1000-8000-00805f9b34fb",
-  //           "0000ffe1-0000-1000-8000-00805f9b34fb"
-  //         );
-  //         /**
-  //          *  deviceName={"DSD TECH"}
-  //           deviceId={"68:5E:1C:4C:36:F6DSD TECH"}
-  //           serviceUUID={"0000ffe0-0000-1000-8000-00805f9b34fb"}
-  //           characteristicUUID={"0000ffe1-0000-1000-8000-00805f9b34fb"}
-  //          */
-  //       }
-  //     });
+  async function startReadBLECharacteristic(device: Device): Promise<void> {
+    try {
+      if (device && characteristicReference) {
+        bluetoothManager.monitorCharacteristicForDevice(
+          device.id,
+          "0000ffe0-0000-1000-8000-00805f9b34fb",
+          characteristicReference.uuid,
+          (error, characteristic) => {
+            if (error) {
+              console.error("Reading data fail", error);
+              return;
+            }
+            if (characteristic && characteristic.value) {
+              const decodedData = base64.decode(characteristic.value);
+              // console.log("Data received: ", decodedData);
 
-  //     let isMounted = true; // Flag to manage mount status
-  //     let timeoutId: NodeJS.Timeout | null = null;
+              updateLogdata(decodedData);
 
-  //     const fetchData = async () => {
-  //       try {
-  //         if (!isMounted) return;
-  //         const data = await readBLECharacteristic();
-  //         console.log(`fetchData: `, data);
-  //         if (data && isMounted) {
-  //           updateCurrentLocation(data);
-  //         }
-  //       } catch (error) {
-  //         if (!isMounted) console.error(error);
-  //         else {
-  //           console.error("Failed to read BLE characteristic: ", error);
-  //         }
-  //         Alert.alert("Failed to read data");
-  //       } finally {
-  //         if (isMounted) {
-  //           // Schedule the next fetch
-  //           timeoutId = setTimeout(fetchData, 4500);
-  //         }
-  //       }
-  //     };
-
-  //     fetchData(); // fetch immediately on mount
-
-  //     return () => {
-  //       isMounted = false;
-  //       if (timeoutId !== null) {
-  //         clearTimeout(timeoutId);
-  //       }
-  //     };
-  //   }, []);
-
-  //current
-  //   useEffect(() => {
-  //     requestBluetoothPermission().then((result) => {
-  //       console.log("RequestBluetoothPermission on this device is " + [result]);
-  //       if (result) {
-  //         console.log("Scanning for devices");
-  //         scanAndConnect(
-  //           "DSD TECH",
-  //           "68:5E:1C:4C:36:F6DSD TECH",
-  //           "0000ffe0-0000-1000-8000-00805f9b34fb",
-  //           "0000ffe1-0000-1000-8000-00805f9b34fb"
-  //         ).then(() => {
-  //           bluetoothManager.monitorCharacteristicForDevice(
-  //             "68:5E:1C:4C:36:F6DSD TECH",
-  //             "0000ffe0-0000-1000-8000-00805f9b34fb",
-  //             "0000ffe1-0000-1000-8000-00805f9b34fb",
-  //             (error, characteristic) => {
-  //               if (error) {
-  //                 console.error("Notification setup failed", error);
-  //                 return;
-  //               }
-  //               if (characteristic && characteristic.value) {
-  //                 console.log(
-  //                   "Received new data from",
-  //                   characteristic.uuid,
-  //                   characteristic.value
-  //                 );
-  //                 updateCurrentLocation(characteristic.value);
-  //               }
-  //             }
-  //           );
-  //         });
-  //       }
-  //     });
-  //   }, []);
-
-  //correct
-  //   useEffect(() => {
-  //     requestBluetoothPermission().then((result) => {
-  //       console.log("RequestBluetoothPermission on this device is " + [result]);
-  //       if (result) {
-  //         console.log("Scanning for devices");
-
-  //         bluetoothManager.startDeviceScan(null, null, (error, device) => {
-  //           if (error) {
-  //             console.error("Scan failed", error);
-  //             return;
-  //           }
-
-  //           if (device && device.name === "DSD TECH") {
-  //             bluetoothManager.stopDeviceScan();
-
-  //             device
-  //               .connect()
-  //               .then((device) => {
-  //                 return device.discoverAllServicesAndCharacteristics();
-  //               })
-  //               .then((device) => {
-
-  //                 bluetoothManager.monitorCharacteristicForDevice(
-  //                   device.id,
-  //                   "0000ffe0-0000-1000-8000-00805f9b34fb",
-  //                   "0000ffe1-0000-1000-8000-00805f9b34fb",
-  //                   (error, characteristic) => {
-  //                     if (error) {
-  //                       console.error("Notification setup failed", error);
-  //                       return;
-  //                     }
-  //                     if (characteristic && characteristic.value) {
-  //                       //   console.log(
-  //                       //     "Received new data from",
-  //                       //     characteristic.uuid,
-  //                       //     characteristic.value
-  //                       //   );
-  //                       const decodedData = base64.decode(characteristic.value);
-
-  //                       updateCurrentLocation(decodedData);
-  //                     }
-  //                   }
-  //                 );
-  //               })
-  //               .catch((error) => {
-  //                 console.error("Connection failed", error);
-  //               });
-  //           }
-  //         });
-  //       }
-  //     });
-  //   }, []);
-
-  useEffect(() => {
-    requestBluetoothPermission().then((result) => {
-      console.log("RequestBluetoothPermission on this device is " + [result]);
-      if (result) {
-        console.log("Scanning for devices");
-
-        bluetoothManager.startDeviceScan(null, null, (error, device) => {
-          if (error) {
-            console.error("Scan failed", error);
-            return;
+              // checkReachDestination();
+            }
           }
-
-          if (device && device.name === "DSD TECH") {
-            bluetoothManager.stopDeviceScan();
-
-            device
-              .connect()
-              .then((device) => {
-                return device.discoverAllServicesAndCharacteristics();
-              })
-              .then((device) => {
-                return device.services();
-              })
-              .then((services) => {
-                const promises = services.map((service) =>
-                  service.characteristics()
-                );
-                return Promise.all(promises);
-              })
-              .then((characteristicsNestedArray) => {
-                const characteristics = characteristicsNestedArray.flat();
-                characteristicReference = characteristics.find(
-                  (char) => char.uuid === "0000ffe1-0000-1000-8000-00805f9b34fb"
-                );
-
-                if (characteristicReference) {
-                  Alert.alert("Connected to DSD TECH BLE");
-                  bluetoothManager.monitorCharacteristicForDevice(
-                    device.id,
-                    "0000ffe0-0000-1000-8000-00805f9b34fb",
-                    characteristicReference.uuid,
-                    (error, characteristic) => {
-                      if (error) {
-                        console.error("Notification setup failed", error);
-                        return;
-                      }
-                      if (characteristic && characteristic.value) {
-                        const decodedData = base64.decode(characteristic.value);
-                        updateCurrentLocation(decodedData);
-                      }
-                    }
-                  );
-                }
-              })
-              .catch((error) => {
-                console.error("Connection failed", error);
-              });
-          }
-        });
+        );
       }
-    });
-  }, []);
+    } catch (error) {
+      console.error("Failed to read data from BLE:", error);
+    }
+  }
+
+  const reconnectToDevice = async (device: Device | null): Promise<void> => {
+    if (!device) {
+      console.error("reconnectToDevice: Device is undefined");
+      return;
+    }
+    try {
+      await bluetoothManager.connectToDevice(device.id);
+      console.log("Device has been reconnected");
+      Alert.alert("Device has been reconnected");
+
+      // startReadBLECharacteristic(deviceConnected);
+    } catch (error) {
+      console.error("Failed to reconnect to device:", error);
+    }
+  };
+
+  const sendEmergencyStop = async () => {
+    writeBLECharacteristic(`STOP\n`);
+    setGostate(false);
+    Alert.alert(`EMERGENCY STOP!!`);
+  };
 
   const handleSendData = async () => {
     if (!goState) {
@@ -451,10 +314,40 @@ export default function App() {
         )},${destination.longitude.toFixed(6)}`
       );
     } else {
-      writeBLECharacteristic(`STOP!!\n`);
+      writeBLECharacteristic(`STOP\n`);
       Alert.alert(`STOP!!`);
     }
+
     setGostate(!goState);
+  };
+
+  const handleDestinationChange = (data: any) => {
+    if (data) {
+      if (goState) {
+        console.log("data lat: ", data.latitude);
+        console.log("data long: ", data.longitude);
+        writeBLECharacteristic(`LAT:${data.latitude.toFixed(6)}\n`);
+        writeBLECharacteristic(`LONG:${data.longitude.toFixed(6)}\n`);
+        setDestination({
+          latitude: data.latitude,
+          longitude: data.longitude,
+        });
+        Alert.alert(
+          `data sent: ${data.latitude.toFixed(6)},${data.longitude.toFixed(6)}`
+        );
+      } else {
+        setDestination({
+          latitude: data.latitude,
+          longitude: data.longitude,
+        });
+      }
+    } else {
+      console.log("data lat: ", destination.latitude);
+      console.log("data long: ", destination.longitude);
+
+      writeBLECharacteristic(`LAT:${destination.latitude.toFixed(6)}\n`);
+      writeBLECharacteristic(`LONG:${destination.longitude.toFixed(6)}\n`);
+    }
   };
 
   return (
@@ -467,17 +360,27 @@ export default function App() {
             setDestination={setDestination}
             currentLocation={currentLocation}
             setCurrentLocation={setCurrentLocation}
+            handleDestinationChange={handleDestinationChange}
           />
         </View>
 
         <DataDisplayView
           destination={destination}
-          setDestination={setDestination}
           currentLocation={currentLocation}
-          setCurrentLocation={setCurrentLocation}
+          sensorData={sensorData}
         />
-
-        <Button title={goState ? "STOP" : "GO"} onPress={handleSendData} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button
+          title={goState ? "STOP" : "GO"}
+          onPress={handleSendData}
+          isPressed={goState}
+        />
+        <Button
+          title={"Emergency STOP"}
+          onPress={sendEmergencyStop}
+          isPressed={false}
+        />
       </View>
     </>
   );
@@ -485,14 +388,21 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 7,
     marginTop: 50,
     paddingHorizontal: 20,
     backgroundColor: "#FFFFFF",
-    // alignItems: "center",
     justifyContent: "center",
   },
-
+  buttonContainer: {
+    flex: 1,
+    marginTop: 50,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    alignItems: "baseline",
+    justifyContent: "flex-start",
+  },
   mapContainer: {
     width: "100%",
     flex: 1,
