@@ -12,16 +12,15 @@ import React, { useEffect, useState } from "react";
 
 import { BleManager, Characteristic, LogLevel } from "react-native-ble-plx";
 import base64 from "react-native-base64";
-import GoogleMap, { getInitialRegion } from "./components/googleMap";
+import GoogleMap, { getInitialLatLng } from "./components/googleMap";
 import { Region, LatLng } from "react-native-maps";
 import DataDisplayView from "./components/DataDisplayView";
 import Button from "./components/Button";
 
-type PermissionStatus = "granted" | "denied" | "never_ask_again";
-
 let characteristicReference: Characteristic | undefined = undefined;
 let deviceConnected: Device | null = null;
 
+type PermissionStatus = "granted" | "denied" | "never_ask_again";
 const requestBluetoothPermission = async () => {
   if (Platform.OS === "ios") {
     console.log("ios platform detected");
@@ -68,21 +67,21 @@ const requestBluetoothPermission = async () => {
 
 export default function App() {
   let bluetoothManager: BleManager;
-  let counter = 0;
+  let sensor_index = 0;
 
-  const [currentLocation, setCurrentLocation] = useState<Region>(
-    getInitialRegion().region
+  const [currentLocation, setCurrentLocation] = useState<LatLng>(
+    getInitialLatLng().latlng
   );
   const [destination, setDestination] = useState<LatLng>(
-    getInitialRegion().region
+    getInitialLatLng().latlng
   );
   const [goState, setGostate] = useState(false);
-  // const [device, setDevice] = useState<Device | null>(null);
   const [sensorData, setSensorData] = useState({
     str1: " ",
     str2: " ",
     str3: " ",
   });
+  const [BLEconnected, setBLEconnected] = useState(false);
 
   useEffect(() => {
     bluetoothManager = new BleManager();
@@ -100,15 +99,13 @@ export default function App() {
 
             if (device && device.name === "DSD TECH") {
               bluetoothManager.stopDeviceScan();
-              // bluetoothManager.setLogLevel(LogLevel.Verbose);
-
               device
                 .connect()
                 .then(async (device) => {
                   deviceConnected = device;
                   console.log("Connected to device: ", device.id);
                   Alert.alert("Connected to device: ", device.id);
-                  await subscriptBLE();
+                  await subscribleBLE();
 
                   return device.discoverAllServicesAndCharacteristics();
                 })
@@ -129,8 +126,8 @@ export default function App() {
                       char.uuid === "0000ffe1-0000-1000-8000-00805f9b34fb"
                   );
 
-                  if (deviceConnected)
-                    startReadBLECharacteristic(deviceConnected);
+                  if (deviceConnected) startReadBLEData(deviceConnected);
+                  setBLEconnected(true);
                 })
                 .catch((error) => {
                   console.error("Connection failed", error);
@@ -141,8 +138,8 @@ export default function App() {
       });
     };
 
-    const subscriptBLE = async () => {
-      // console.log("subscriptBLE: Subscribing to BLE events");
+    const subscribleBLE = async () => {
+      // console.log("subscribleBLE: Subscribing to BLE events");
       if (!deviceConnected) {
         return;
       }
@@ -151,14 +148,15 @@ export default function App() {
         (error, device) => {
           if (error) {
             console.error(
-              "subscriptBLE: An error occurred while disconnecting",
+              "subscribleBLE: An error occurred while disconnecting",
               error
             );
             return;
           }
+          setBLEconnected(false);
           console.log(`Device ${device?.id} has disconnected`);
           Alert.alert("Device has disconnected, attempting to reconnect");
-          reconnectToDevice(device);
+          // reconnectToDevice(device);
         }
       );
     };
@@ -167,22 +165,20 @@ export default function App() {
 
     return () => {
       bluetoothManager.destroy();
-      // clearInterval(intervalId);
     };
   }, []);
 
-  const updateLogdata = (bridgedata: string): void => {
+  const updateData = (bridgedata: string): void => {
     if (typeof bridgedata != "string") {
       console.warn(": Expected bridgedata to be a string");
       return;
     }
 
     const regionArray = bridgedata.split(/[:,\n]/);
-    // console.log("updateLogdata: ", regionArray);
 
     if (regionArray.length < 2) {
       console.warn(
-        "updateLogdata: Expected bridgedata to have at least 2 elements"
+        "updateData: Expected bridgedata to have at least 2 elements"
       );
       return;
     }
@@ -202,44 +198,36 @@ export default function App() {
         longitude: longitude_update,
       }));
     } else {
-      if (counter == 0) {
+      if (sensor_index == 0) {
         setSensorData((prevState) => ({
           ...prevState,
           str1: bridgedata,
         }));
-      } else if (counter == 1) {
+      } else if (sensor_index == 1) {
         setSensorData((prevState) => ({
           ...prevState,
           str2: bridgedata,
         }));
-      } else if (counter == 2) {
+      } else if (sensor_index == 2) {
         setSensorData((prevState) => ({
           ...prevState,
           str3: bridgedata,
         }));
       }
-      //  else if (counter == 3) {
-      //   setSensorData((prevState) => ({
-      //     ...prevState,
-      //     str4: bridgedata,
-      //   }));
-      // }
-      counter++;
-      if (counter > 2) {
-        counter = 0;
+      sensor_index++;
+      if (sensor_index > 2) {
+        sensor_index = 0;
       }
     }
   };
 
-  async function writeBLECharacteristic(data: string): Promise<void> {
+  async function writeBLEData(data: string): Promise<void> {
     if (
       !characteristicReference ||
       characteristicReference == null ||
       !characteristicReference.isWritableWithoutResponse
     ) {
-      console.warn(
-        "writeBLECharacteristic: No characteristic reference available."
-      );
+      console.warn("writeBLEData: No characteristic reference available.");
       return;
     }
 
@@ -252,7 +240,7 @@ export default function App() {
     }
   }
 
-  async function startReadBLECharacteristic(device: Device): Promise<void> {
+  async function startReadBLEData(device: Device): Promise<void> {
     try {
       if (device && characteristicReference) {
         bluetoothManager.monitorCharacteristicForDevice(
@@ -267,100 +255,71 @@ export default function App() {
             if (characteristic && characteristic.value) {
               const decodedData = base64.decode(characteristic.value);
               // console.log("Data received: ", decodedData);
-
-              updateLogdata(decodedData);
-
-              // checkReachDestination();
+              updateData(decodedData);
             }
           }
         );
+      } else {
+        console.warn("BLE CharacteristicReference is undefined");
       }
     } catch (error) {
       console.error("Failed to read data from BLE:", error);
     }
   }
 
-  const reconnectToDevice = async (device: Device | null): Promise<void> => {
-    if (!device) {
-      console.error("reconnectToDevice: Device is undefined");
-      return;
-    }
-    try {
-      await bluetoothManager.connectToDevice(device.id);
-      console.log("Device has been reconnected");
-      Alert.alert("Device has been reconnected");
-
-      // startReadBLECharacteristic(deviceConnected);
-    } catch (error) {
-      console.error("Failed to reconnect to device:", error);
-    }
-  };
-
-  const sendEmergencyStop = async () => {
-    writeBLECharacteristic(`STOP\n`);
+  const onClicksendEmergencyStop = async () => {
+    writeBLEData(`STOP\n`);
     setGostate(false);
-    Alert.alert(`EMERGENCY STOP!!`);
+    Alert.alert(`Command sent: EMERGENCY STOP`);
   };
 
-  const handleSendData = async () => {
+  const onClicksendData = async () => {
     if (!goState) {
-      writeBLECharacteristic(`GO!!\n`);
-      writeBLECharacteristic(`LAT:${destination.latitude.toFixed(6)}\n`);
-      writeBLECharacteristic(`LONG:${destination.longitude.toFixed(6)}\n`);
-
+      writeBLEData(`GO!!\n`);
+      writeBLEData(`LAT:${destination.latitude.toFixed(6)}\n`);
+      writeBLEData(`LONG:${destination.longitude.toFixed(6)}\n`);
       Alert.alert(
-        `data sent: ${destination.latitude.toFixed(
+        `Destination sent: ${destination.latitude.toFixed(
           6
         )},${destination.longitude.toFixed(6)}`
       );
     } else {
-      writeBLECharacteristic(`STOP\n`);
-      Alert.alert(`STOP!!`);
+      writeBLEData(`STOP\n`);
+      Alert.alert(`Command sent: STOP`);
     }
-
     setGostate(!goState);
   };
 
-  const handleDestinationChange = (data: any) => {
+  const onClickDestinationChange = (data: any) => {
     if (data) {
       if (goState) {
         console.log("data lat: ", data.latitude);
         console.log("data long: ", data.longitude);
-        writeBLECharacteristic(`LAT:${data.latitude.toFixed(6)}\n`);
-        writeBLECharacteristic(`LONG:${data.longitude.toFixed(6)}\n`);
-        setDestination({
-          latitude: data.latitude,
-          longitude: data.longitude,
-        });
+        writeBLEData(`LAT:${data.latitude.toFixed(6)}\n`);
+        writeBLEData(`LONG:${data.longitude.toFixed(6)}\n`);
         Alert.alert(
           `data sent: ${data.latitude.toFixed(6)},${data.longitude.toFixed(6)}`
         );
-      } else {
-        setDestination({
-          latitude: data.latitude,
-          longitude: data.longitude,
-        });
       }
-    } else {
-      console.log("data lat: ", destination.latitude);
-      console.log("data long: ", destination.longitude);
-
-      writeBLECharacteristic(`LAT:${destination.latitude.toFixed(6)}\n`);
-      writeBLECharacteristic(`LONG:${destination.longitude.toFixed(6)}\n`);
+      setDestination({
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
     }
   };
 
   return (
     <>
+      <Text style={{ textAlign: "center", fontSize: 20, fontWeight: "bold" }}>
+        BLE Connected: {BLEconnected ? "True" : "False"}
+      </Text>
       <StatusBar style="auto" />
       <View style={styles.container}>
         <View style={styles.mapContainer}>
           <GoogleMap
             destination={destination}
-            setDestination={setDestination}
             currentLocation={currentLocation}
-            setCurrentLocation={setCurrentLocation}
-            handleDestinationChange={handleDestinationChange}
+            onClickDestinationChange={onClickDestinationChange}
           />
         </View>
 
@@ -373,12 +332,12 @@ export default function App() {
       <View style={styles.buttonContainer}>
         <Button
           title={goState ? "STOP" : "GO"}
-          onPress={handleSendData}
+          onPress={onClicksendData}
           isPressed={goState}
         />
         <Button
           title={"Emergency STOP"}
-          onPress={sendEmergencyStop}
+          onPress={onClicksendEmergencyStop}
           isPressed={false}
         />
       </View>
@@ -388,7 +347,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 7,
+    flex: 6,
     marginTop: 50,
     paddingHorizontal: 20,
     backgroundColor: "#FFFFFF",
@@ -406,9 +365,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     width: "100%",
     flex: 1,
-    // backgroundColor: "#808080",
     backgroundColor: "#FFFFFF",
-
     alignItems: "center",
     justifyContent: "center",
   },
