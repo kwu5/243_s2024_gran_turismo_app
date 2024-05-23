@@ -5,7 +5,7 @@ import { Text, View, StyleSheet } from "react-native";
 
 export interface DataDisplayProps {
   destination: LatLng;
-  currentLocation: Region;
+  currentLocation: LatLng;
   sensorData: any;
 }
 
